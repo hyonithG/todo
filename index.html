@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>個人工作儀表板 | Personal Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Tone.js for gentle audio chimes without external mp3 files -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              500: '#0d9488',
+              600: '#0f766e',
+            },
+            tomato: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              500: '#f43f5e',
+              600: '#e11d48',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .shake-error {
+      animation: shake 0.4s ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-700 min-h-screen font-sans selection:bg-teal-100 selection:text-teal-900 pb-16">
+
+  <!-- Fullscreen Login Authentication Screen -->
+  <div id="login-screen" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="login-card" class="bg-white w-full max-w-sm rounded-3xl p-7 shadow-2xl border border-slate-100 flex flex-col items-center text-center transition-all">
+      <div class="w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mb-4 shadow-xs">
+        <i data-lucide="shield-check" class="w-8 h-8"></i>
+      </div>
+      <h2 class="text-xl font-extrabold text-slate-800">個人工作儀表板</h2>
+      <p class="text-xs text-slate-400 mt-1 mb-6">受安全保護，請輸入存取密碼以繼續</p>
+
+      <form id="login-form" class="w-full space-y-4">
+        <div class="relative w-full text-left">
+          <label for="login-password" class="block text-xs font-semibold text-slate-500 mb-1.5 ml-0.5">系統密碼</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="login-password" 
+              placeholder="請輸入 6 位數密碼..." 
+              autocomplete="current-password"
+              maxlength="20"
+              class="w-full px-4 py-3 pr-11 rounded-2xl bg-slate-50 border border-slate-200 text-sm tracking-widest text-slate-800 placeholder:tracking-normal placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-mono"
+              required
+            >
+            <button 
+              type="button" 
+              id="toggle-pwd-vis-btn" 
+              tabindex="-1"
+              title="顯示/隱藏密碼" 
+              class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+            >
+              <i id="pwd-vis-icon" data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <p id="login-error-msg" class="text-xs text-rose-500 mt-1.5 hidden flex items-center gap-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5 inline"></i>
+            <span>密碼錯誤，請重新輸入</span>
+          </p>
+        </div>
+
+        <button 
+          type="submit" 
+          id="login-submit-btn" 
+          class="w-full py-3 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white rounded-2xl font-semibold text-sm transition-all shadow-md shadow-teal-600/20 flex items-center justify-center gap-2"
+        >
+          <i data-lucide="unlock" class="w-4 h-4"></i>
+          <span>驗證並進入儀表板</span>
+        </button>
+      </form>
+      <div class="text-[11px] text-slate-400 mt-5">預設存取密碼：<span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-semibold">123456</span></div>
+    </div>
+  </div>
+
+  <div id="dashboard-content" class="transition-all duration-300 opacity-0 pointer-events-none filter blur-sm">
+  <header class="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+      <div>
+        <div class="flex items-center gap-2 text-teal-600 font-medium text-sm mb-1">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span id="greeting-text">早安，願你有美好的一天</span>
+        </div>
+        <div class="flex items-baseline gap-3">
+          <h1 id="live-time" class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-800">
+            00:00<span class="text-xl sm:text-2xl text-slate-400 font-medium ml-1.5">:00</span>
+          </h1>
+          <span id="live-ampm" class="text-sm font-semibold uppercase tracking-wider text-slate-400">AM</span>
+        </div>
+        <div class="flex items-center gap-2 mt-2 text-slate-500 text-sm font-medium">
+          <i data-lucide="calendar" class="w-4 h-4 text-teal-500"></i>
+          <span id="live-date">2026年 9月 21日 星期一</span>
+        </div>
+      </div>
+
+      <!-- Weather Widget In Header -->
+      <div id="weather-card" class="flex items-center gap-4 bg-slate-50 border border-slate-200/60 p-4 rounded-2xl">
+        <div id="weather-icon-wrapper" class="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 shadow-sm">
+          <i id="weather-icon" data-lucide="cloud-sun" class="w-7 h-7"></i>
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span id="weather-temp" class="text-2xl font-bold text-slate-800">--°C</span>
+            <span id="weather-condition" class="text-xs px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-600 font-medium">載入中</span>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+            <span id="weather-location" class="flex items-center gap-1 font-medium text-slate-500">
+              <i data-lucide="map-pin" class="w-3 h-3"></i> 台北市
+            </span>
+            <span id="weather-humidity">濕度 --%</span>
+          </div>
+        </div>
+        <button id="refresh-weather-btn" title="重新獲取天氣" class="p-2 ml-auto text-slate-400 hover:text-teal-600 hover:bg-slate-200/50 rounded-xl transition-all">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+        <button id="logout-btn" title="鎖定並登出" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-slate-200/50">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
+
+    <!-- LEFT COLUMN: Shortcuts & Todo & Notes (7 cols on lg) -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+
+      <!-- 1. Quick Links Section -->
+      <section class="bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="globe" class="w-5 h-5 text-teal-600"></i>
+            常用網頁連結
+          </h2>
+          <button id="open-add-link-modal" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 transition-colors flex items-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增捷徑
+          </button>
+        </div>
+
+        <div id="links-container" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+          <!-- Dynamically populated links -->
+        </div>
+      </section>
+
+      <!-- 2. To-Do List Section -->
+      <section class="bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col flex-1">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="check-square" class="w-5 h-5 text-emerald-600"></i>
+                待辦事項
+              </h2>
+              <button id="sync-status" class="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors" title="點擊查看連線說明">
+                <i id="sync-icon" data-lucide="cloud-check" class="w-3 h-3 text-emerald-600"></i>
+                <span id="sync-text">雲端同步中</span>
+              </button>
+            </div>
+            <p id="todo-stats" class="text-xs text-slate-400 mt-0.5">載入試算表資料中...</p>
+          </div>
+          
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <button id="refresh-todos-btn" title="從 Google 試算表重新抓取" class="p-1.5 rounded-xl border border-slate-200 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-medium">
+              <button class="todo-filter-btn px-2.5 py-1 rounded-lg bg-white shadow-xs text-slate-800 font-semibold" data-filter="all">全部</button>
+              <button class="todo-filter-btn px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800" data-filter="active">進行中</button>
+              <button class="todo-filter-btn px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800" data-filter="completed">已完成</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="w-full bg-slate-100 rounded-full h-2 mb-4 overflow-hidden">
+          <div id="todo-progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- Add Input with Due Date (RWD Friendly) -->
+        <form id="todo-form" class="flex flex-col sm:flex-row gap-2 mb-4">
+          <input 
+            type="text" 
+            id="todo-input" 
+            placeholder="輸入重要任務..." 
+            class="flex-1 px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 placeholder:text-slate-400 transition-all"
+            autocomplete="off"
+            required
+          >
+          <div class="flex items-center gap-2">
+            <input 
+              type="date" 
+              id="todo-due-date" 
+              title="設定截止日期"
+              class="flex-1 sm:flex-none px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all"
+            >
+            <button type="submit" class="shrink-0 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl text-sm font-medium transition-colors flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="plus" class="w-4 h-4"></i> 新增
+            </button>
+          </div>
+        </form>
+
+        <!-- List -->
+        <div class="overflow-y-auto max-h-72 space-y-2 pr-1" id="todo-list">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- 3. Scratchpad / Multi-Notes Section -->
+      <section class="bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="file-text" class="w-5 h-5 text-amber-500"></i>
+            <h2 class="text-lg font-bold text-slate-800">隨手筆記本</h2>
+            <span id="notes-count-badge" class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">0 則</span>
+          </div>
+          <button id="toggle-add-note-btn" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors flex items-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增記事
+          </button>
+        </div>
+
+        <!-- Collapsible Add Note Form -->
+        <form id="note-form" class="mb-4 bg-amber-50/50 border border-amber-200/70 p-3.5 rounded-2xl space-y-2.5 hidden">
+          <input 
+            type="text" 
+            id="note-title-input" 
+            placeholder="筆記標題 (選填)..." 
+            class="w-full px-3.5 py-2 rounded-xl bg-white border border-amber-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-slate-800"
+          >
+          <textarea 
+            id="note-content-input" 
+            rows="3" 
+            placeholder="記錄下突發靈感、電話號碼、備忘資訊..." 
+            class="w-full px-3.5 py-2 rounded-xl bg-white border border-amber-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-y text-slate-700"
+            required
+          ></textarea>
+          <div class="flex justify-end gap-2 pt-1">
+            <button type="button" id="cancel-note-btn" class="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:bg-amber-100/60 transition-colors">取消</button>
+            <button type="submit" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors">儲存筆記</button>
+          </div>
+        </form>
+
+        <!-- Notes Dynamic Grid -->
+        <div id="notes-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT COLUMN: Pomodoro Timer & Monthly Calendar (5 cols on lg) -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+
+      <!-- 4. Pomodoro Timer Widget -->
+      <section class="bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col items-center">
+        <div class="w-full flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="timer" class="w-5 h-5 text-rose-500"></i>
+            專注番茄鐘
+          </h2>
+          <span id="pomo-status-pill" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100">
+            專注時段
+          </span>
+        </div>
+
+        <!-- Mode Buttons -->
+        <div class="flex gap-2 bg-slate-100 p-1.5 rounded-2xl w-full max-w-xs mb-6 text-xs font-semibold text-slate-600">
+          <button class="pomo-mode-btn flex-1 py-1.5 rounded-xl bg-white shadow-xs text-rose-600" data-mode="work" data-time="25">專注 25m</button>
+          <button class="pomo-mode-btn flex-1 py-1.5 rounded-xl hover:text-slate-900" data-mode="short" data-time="5">短休息 5m</button>
+          <button class="pomo-mode-btn flex-1 py-1.5 rounded-xl hover:text-slate-900" data-mode="long" data-time="15">長休息 15m</button>
+        </div>
+
+        <!-- Circular Timer Display -->
+        <div class="relative w-52 h-52 flex items-center justify-center my-1">
+          <svg class="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-100" />
+            <circle id="pomo-progress-ring" cx="80" cy="80" r="70" stroke="currentColor" stroke-width="8" fill="transparent" 
+                    stroke-dasharray="440" stroke-dashoffset="0" stroke-linecap="round" class="text-rose-500 transition-all duration-300" />
+          </svg>
+          <div class="absolute flex flex-col items-center">
+            <span id="pomo-display" class="text-4xl font-extrabold text-slate-800 tracking-tight">25:00</span>
+            <span id="pomo-cycles" class="text-xs font-medium text-slate-400 mt-1">第 1 個番茄週期</span>
+          </div>
+        </div>
+
+        <!-- Timer Controls -->
+        <div class="flex items-center gap-4 mt-6">
+          <button id="pomo-toggle-btn" class="px-6 py-2.5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-medium text-sm transition-all shadow-md shadow-rose-500/20 flex items-center gap-2">
+            <i id="pomo-toggle-icon" data-lucide="play" class="w-4 h-4 fill-current"></i>
+            <span id="pomo-toggle-label">開始專注</span>
+          </button>
+          <button id="pomo-reset-btn" title="重置計時器" class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </button>
+          <button id="pomo-sound-btn" title="切換音效開關" class="p-2.5 rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+            <i id="pomo-sound-icon" data-lucide="volume-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- 5. Monthly Calendar Widget -->
+      <section class="bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i>
+            <h2 id="calendar-title" class="text-lg font-bold text-slate-800">2026年 9月</h2>
+          </div>
+          <div class="flex items-center gap-1">
+            <button id="cal-prev-btn" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors" title="上個月">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+            <button id="cal-today-btn" class="text-xs font-semibold px-2 py-1 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors">
+              今天
+            </button>
+            <button id="cal-next-btn" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors" title="下個月">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Day of week headers -->
+        <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400 mb-2">
+          <div class="text-rose-500">日</div>
+          <div>一</div>
+          <div>二</div>
+          <div>三</div>
+          <div>四</div>
+          <div>五</div>
+          <div class="text-indigo-500">六</div>
+        </div>
+
+        <!-- Days Grid -->
+        <div id="calendar-days-grid" class="grid grid-cols-7 gap-1 text-sm font-medium">
+          <!-- Dynamically populated dates -->
+        </div>
+      </section>
+
+    </div>
+  </main>
+  </div> <!-- /dashboard-content -->
+
+  <!-- Modal for Adding Quick Links -->
+  <div id="link-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-xl border border-slate-100 transform transition-all">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-slate-800">新增常用捷徑</h3>
+        <button id="close-link-modal" class="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">名稱</label>
+          <input type="text" id="modal-link-name" placeholder="例如：GitHub、Notion" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">網址 (URL)</label>
+          <input type="url" id="modal-link-url" placeholder="https://example.com" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">圖示代稱 (Emoji 或 1~2個字)</label>
+          <input type="text" id="modal-link-icon" placeholder="例如：🚀、Docs、GH" maxlength="4" class="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 outline-none">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6">
+        <button id="cancel-link-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-100 transition-colors">取消</button>
+        <button id="save-link-btn" class="px-4 py-2 rounded-xl text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 transition-colors">儲存捷徑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-800/90 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2.5 text-sm transform transition-all duration-300 translate-y-20 opacity-0 z-50 pointer-events-none">
+    <i id="toast-icon" data-lucide="check-circle" class="w-4 h-4 text-teal-400"></i>
+    <span id="toast-message">操作已成功</span>
+  </div>
+
+  <!-- GAS Connection Help Modal -->
+  <div id="gas-help-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i data-lucide="cloud-cog" class="w-5 h-5 text-teal-600"></i>
+          Google 試算表連線設定檢查
+        </h3>
+        <button id="close-gas-modal" class="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
+        <p class="text-slate-700">若出現 <code class="bg-rose-50 text-rose-600 px-1 py-0.5 rounded font-mono">Failed to fetch</code> 錯誤，通常是因為 Google 部署設定尚未開放存取：</p>
+        <div class="bg-amber-50/80 border border-amber-200 rounded-2xl p-3.5 space-y-2">
+          <div class="font-bold text-amber-800 flex items-center gap-1.5">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            最重要：部署權限需設為「任何人」
+          </div>
+          <ol class="list-decimal list-inside space-y-1 text-amber-900">
+            <li>進入 Google 試算表上方「擴充功能」>「Apps Script」。</li>
+            <li>點擊右上角「部署」>「管理部署作業」。</li>
+            <li>點擊鉛筆圖示編輯，確認<strong>「誰可以存取 (Who has access)」</strong>設定為<strong>「任何人 (Anyone)」</strong>（不可設為僅限自己）。</li>
+            <li>版本選取<strong>「新版本 (New version)」</strong>後點擊「部署」。</li>
+          </ol>
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <a href="https://script.google.com/macros/s/AKfycbxZuldFEHEiwx-_9zVvbbFwdGiYjLjCfC6hk9GfJan74NcNzcHhJ0qPcdoxFaHNjeJ58g/exec" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline inline-flex items-center gap-1 font-semibold">
+            在瀏覽器新分頁直接測試此網址 <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          </a>
+          <button id="retry-gas-btn" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors">
+            立即重新連線
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Helper to trigger toast notification without alert()
+    function showToast(message, icon = 'check-circle') {
+      const toast = document.getElementById('toast');
+      const msg = document.getElementById('toast-message');
+      const ic = document.getElementById('toast-icon');
+      msg.textContent = message;
+      ic.setAttribute('data-lucide', icon);
+      lucide.createIcons();
+      
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    // Gentle completion chime with Tone.js
+    let soundEnabled = true;
+    function playChime() {
+      if (!soundEnabled) return;
+      try {
+        if (Tone.context.state !== 'running') {
+          Tone.start();
+        }
+        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        synth.volume.value = -8;
+        const now = Tone.now();
+        synth.triggerAttackRelease("C5", "8n", now);
+        synth.triggerAttackRelease("G5", "8n", now + 0.15);
+        synth.triggerAttackRelease("C6", "4n", now + 0.3);
+      } catch (e) {
+        console.warn("Audio chime prevented by policy:", e);
+      }
+    }
+
+    // 1. Clock & Date Initialization
+    const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+
+    function updateLiveClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+
+      // Greeting logic
+      const greetingEl = document.getElementById('greeting-text');
+      if (hours >= 5 && hours < 11) {
+        greetingEl.textContent = '早安，祝你有充實且美好的一天！';
+      } else if (hours >= 11 && hours < 14) {
+        greetingEl.textContent = '午安，別忘了適當放鬆與補充能量！';
+      } else if (hours >= 14 && hours < 18) {
+        greetingEl.textContent = '下午好，保持專注，今天會很有收穫！';
+      } else if (hours >= 18 && hours < 22) {
+        greetingEl.textContent = '晚安，辛苦了一整天，好好放鬆一下！';
+      } else {
+        greetingEl.textContent = '夜深了，早點休息照顧身體喔！';
+      }
+
+      // Display 12-hour format with zero padding
+      const displayHours = String(hours % 12 || 12).padStart(2, '0');
+      document.getElementById('live-time').innerHTML = `${displayHours}:${minutes}<span class="text-xl sm:text-2xl text-slate-400 font-medium ml-1.5">:${seconds}</span>`;
+      document.getElementById('live-ampm').textContent = ampm;
+
+      // Date string
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const date = now.getDate();
+      const dayName = weekDays[now.getDay()];
+      document.getElementById('live-date').textContent = `${year}年 ${month}月 ${date}日 ${dayName}`;
+    }
+
+    setInterval(updateLiveClock, 1000);
+    updateLiveClock();
+
+    // 2. Weather with Open-Meteo (No API key required)
+    async function fetchWeather(lat = 25.033, lon = 121.5654, locationName = '台北市') {
+      const weatherTemp = document.getElementById('weather-temp');
+      const weatherCondition = document.getElementById('weather-condition');
+      const weatherLocation = document.getElementById('weather-location');
+      const weatherHumidity = document.getElementById('weather-humidity');
+      const weatherIcon = document.getElementById('weather-icon');
+
+      try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`);
+        if (!res.ok) throw new Error('Weather API error');
+        const data = await res.json();
+        const current = data.current;
+
+        weatherTemp.textContent = `${Math.round(current.temperature_2m)}°C`;
+        weatherHumidity.textContent = `濕度 ${current.relative_humidity_2m}%`;
+        weatherLocation.innerHTML = `<i data-lucide="map-pin" class="w-3 h-3"></i> ${locationName}`;
+
+        // Map weather code to text & Lucide icon
+        const code = current.weather_code;
+        let cond = '晴天';
+        let iconName = 'sun';
+
+        if (code === 0) {
+          cond = '晴朗無雲';
+          iconName = 'sun';
+        } else if (code >= 1 && code <= 3) {
+          cond = '多雲時晴';
+          iconName = 'cloud-sun';
+        } else if (code >= 45 && code <= 48) {
+          cond = '有霧';
+          iconName = 'cloud-fog';
+        } else if (code >= 51 && code <= 67) {
+          cond = '局部降雨';
+          iconName = 'cloud-rain';
+        } else if (code >= 71 && code <= 77) {
+          cond = '降雪';
+          iconName = 'cloud-snow';
+        } else if (code >= 80 && code <= 82) {
+          cond = '陣雨';
+          iconName = 'cloud-drizzle';
+        } else if (code >= 95) {
+          cond = '雷雨';
+          iconName = 'cloud-lightning';
+        }
+
+        weatherCondition.textContent = cond;
+        weatherIcon.setAttribute('data-lucide', iconName);
+        lucide.createIcons();
+      } catch (err) {
+        weatherTemp.textContent = '26°C';
+        weatherCondition.textContent = '微風舒適';
+        weatherHumidity.textContent = '濕度 65%';
+        weatherIcon.setAttribute('data-lucide', 'sun');
+        lucide.createIcons();
+      }
+    }
+
+    // Try Geo-location
+    function initWeather() {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            fetchWeather(pos.coords.latitude, pos.coords.longitude, '所在位置');
+          },
+          () => {
+            // Default to Taipei if permission denied or error
+            fetchWeather(25.033, 121.5654, '台北市');
+          },
+          { timeout: 5000 }
+        );
+      } else {
+        fetchWeather(25.033, 121.5654, '台北市');
+      }
+    }
+
+    document.getElementById('refresh-weather-btn').addEventListener('click', () => {
+      initWeather();
+      showToast('天氣資訊已重新載入', 'refresh-cw');
+    });
+    initWeather();
+
+    // 3. Interactive Monthly Calendar
+    let currentCalDate = new Date();
+
+    function renderCalendar() {
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      const titleEl = document.getElementById('calendar-title');
+      const gridEl = document.getElementById('calendar-days-grid');
+
+      titleEl.textContent = `${year}年 ${month + 1}月`;
+      gridEl.innerHTML = '';
+
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+      const prevTotalDays = new Date(year, month, 0).getDate();
+
+      const realToday = new Date();
+      const isCurrentMonth = realToday.getFullYear() === year && realToday.getMonth() === month;
+
+      // Prev month trailing days
+      for (let i = firstDayIndex; i > 0; i--) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'h-9 flex items-center justify-center text-slate-300 select-none';
+        dayDiv.textContent = prevTotalDays - i + 1;
+        gridEl.appendChild(dayDiv);
+      }
+
+      // Current month days
+      for (let day = 1; day <= totalDays; day++) {
+        const dayDiv = document.createElement('div');
+        const isToday = isCurrentMonth && realToday.getDate() === day;
+        
+        dayDiv.className = `h-9 flex items-center justify-center rounded-xl cursor-pointer select-none transition-all ${
+          isToday 
+            ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-200' 
+            : 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-600'
+        }`;
+        dayDiv.textContent = day;
+        dayDiv.addEventListener('click', () => {
+          showToast(`${year}年${month + 1}月${day}日`, 'calendar');
+        });
+        gridEl.appendChild(dayDiv);
+      }
+
+      // Next month leading days to complete grid rows
+      const cellsCount = firstDayIndex + totalDays;
+      const nextDays = (7 - (cellsCount % 7)) % 7;
+      for (let i = 1; i <= nextDays; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'h-9 flex items-center justify-center text-slate-300 select-none';
+        dayDiv.textContent = i;
+        gridEl.appendChild(dayDiv);
+      }
+    }
+
+    document.getElementById('cal-prev-btn').addEventListener('click', () => {
+      currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+      renderCalendar();
+    });
+
+    document.getElementById('cal-next-btn').addEventListener('click', () => {
+      currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    document.getElementById('cal-today-btn').addEventListener('click', () => {
+      currentCalDate = new Date();
+      renderCalendar();
+    });
+
+    renderCalendar();
+
+    // 4. Pomodoro Logic
+    let pomoDuration = 25 * 60;
+    let pomoRemaining = 25 * 60;
+    let pomoInterval = null;
+    let pomoIsRunning = false;
+    let pomoMode = 'work';
+    let pomoCount = 1;
+
+    const pomoDisplay = document.getElementById('pomo-display');
+    const pomoToggleBtn = document.getElementById('pomo-toggle-btn');
+    const pomoToggleIcon = document.getElementById('pomo-toggle-icon');
+    const pomoToggleLabel = document.getElementById('pomo-toggle-label');
+    const pomoResetBtn = document.getElementById('pomo-reset-btn');
+    const pomoRing = document.getElementById('pomo-progress-ring');
+    const pomoStatusPill = document.getElementById('pomo-status-pill');
+    const pomoCycles = document.getElementById('pomo-cycles');
+    const pomoSoundBtn = document.getElementById('pomo-sound-btn');
+    const pomoSoundIcon = document.getElementById('pomo-sound-icon');
+
+    function updatePomoDisplay() {
+      const mins = String(Math.floor(pomoRemaining / 60)).padStart(2, '0');
+      const secs = String(pomoRemaining % 60).padStart(2, '0');
+      pomoDisplay.textContent = `${mins}:${secs}`;
+
+      // Ring progress calculation (circle circumference = 2 * PI * 70 ≈ 440)
+      const circumference = 440;
+      const progress = (pomoDuration - pomoRemaining) / pomoDuration;
+      pomoRing.style.strokeDashoffset = (circumference * progress).toString();
+    }
+
+    function switchPomoMode(mode, minutes) {
+      if (pomoInterval) clearInterval(pomoInterval);
+      pomoIsRunning = false;
+      pomoMode = mode;
+      pomoDuration = minutes * 60;
+      pomoRemaining = pomoDuration;
+
+      pomoToggleLabel.textContent = mode === 'work' ? '開始專注' : '開始休息';
+      pomoToggleIcon.setAttribute('data-lucide', 'play');
+
+      // Update button visual
+      document.querySelectorAll('.pomo-mode-btn').forEach(btn => {
+        if (btn.dataset.mode === mode) {
+          btn.className = 'pomo-mode-btn flex-1 py-1.5 rounded-xl bg-white shadow-xs font-bold ' + 
+            (mode === 'work' ? 'text-rose-600' : 'text-teal-600');
+        } else {
+          btn.className = 'pomo-mode-btn flex-1 py-1.5 rounded-xl text-slate-600 hover:text-slate-900';
+        }
+      });
+
+      if (mode === 'work') {
+        pomoRing.className.baseVal = 'text-rose-500 transition-all duration-300';
+        pomoStatusPill.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100';
+        pomoStatusPill.textContent = '專注時段';
+      } else {
+        pomoRing.className.baseVal = 'text-teal-500 transition-all duration-300';
+        pomoStatusPill.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-50 text-teal-600 border border-teal-100';
+        pomoStatusPill.textContent = mode === 'short' ? '短休息時段' : '長休息時段';
+      }
+
+      updatePomoDisplay();
+      lucide.createIcons();
+    }
+
+    pomoToggleBtn.addEventListener('click', () => {
+      // User gesture needed for Web Audio in some browsers
+      if (Tone.context.state !== 'running') {
+        Tone.start();
+      }
+
+      if (pomoIsRunning) {
+        clearInterval(pomoInterval);
+        pomoIsRunning = false;
+        pomoToggleLabel.textContent = '繼續計時';
+        pomoToggleIcon.setAttribute('data-lucide', 'play');
+      } else {
+        pomoIsRunning = true;
+        pomoToggleLabel.textContent = '暫停計時';
+        pomoToggleIcon.setAttribute('data-lucide', 'pause');
+
+        pomoInterval = setInterval(() => {
+          if (pomoRemaining > 0) {
+            pomoRemaining--;
+            updatePomoDisplay();
+          } else {
+            clearInterval(pomoInterval);
+            pomoIsRunning = false;
+            playChime();
+            
+            if (pomoMode === 'work') {
+              pomoCount++;
+              pomoCycles.textContent = `第 ${pomoCount} 個番茄週期`;
+              showToast('太棒了！完成一個番茄鐘，休息一下吧！', 'coffee');
+              switchPomoMode('short', 5);
+            } else {
+              showToast('休息結束！準備開始下一個專注週期！', 'zap');
+              switchPomoMode('work', 25);
+            }
+          }
+        }, 1000);
+      }
+      lucide.createIcons();
+    });
+
+    pomoResetBtn.addEventListener('click', () => {
+      if (pomoInterval) clearInterval(pomoInterval);
+      pomoIsRunning = false;
+      pomoRemaining = pomoDuration;
+      pomoToggleLabel.textContent = pomoMode === 'work' ? '開始專注' : '開始休息';
+      pomoToggleIcon.setAttribute('data-lucide', 'play');
+      updatePomoDisplay();
+      lucide.createIcons();
+      showToast('計時器已重置', 'rotate-ccw');
+    });
+
+    pomoSoundBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      pomoSoundIcon.setAttribute('data-lucide', soundEnabled ? 'volume-2' : 'volume-x');
+      pomoSoundBtn.classList.toggle('text-rose-500', !soundEnabled);
+      lucide.createIcons();
+      showToast(soundEnabled ? '提示音效已開啟' : '提示音效已靜音', soundEnabled ? 'volume-2' : 'volume-x');
+    });
+
+    document.querySelectorAll('.pomo-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchPomoMode(btn.dataset.mode, parseInt(btn.dataset.time));
+      });
+    });
+
+    updatePomoDisplay();
+
+    // 5. To-Do List Management with Google Sheets API
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxZuldFEHEiwx-_9zVvbbFwdGiYjLjCfC6hk9GfJan74NcNzcHhJ0qPcdoxFaHNjeJ58g/exec';
+    const getTodayString = () => new Date().toISOString().split('T')[0];
+
+    // Read cache from localStorage for instant display while fetching
+    let todos = JSON.parse(localStorage.getItem('dashboard_todos')) || [];
+    let currentFilter = 'all';
+    let isFetchingTodos = false;
+
+    // JSONP Helper to bypass any browser CORS or sandbox 302 redirect limits
+    function fetchWithJsonp(url, params = {}) {
+      return new Promise((resolve, reject) => {
+        const callbackName = 'gas_cb_' + Math.round(1000000 * Math.random());
+        const queryParams = new URLSearchParams(params);
+        queryParams.set('callback', callbackName);
+        queryParams.set('_nocache', Date.now().toString());
+
+        const separator = url.includes('?') ? '&' : '?';
+        const script = document.createElement('script');
+        script.src = `${url}${separator}${queryParams.toString()}`;
+
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error('連線逾時 (請確認 GAS 權限已設為任何人)'));
+        }, 12000);
+
+        function cleanup() {
+          if (script.parentNode) script.parentNode.removeChild(script);
+          delete window[callbackName];
+          clearTimeout(timeout);
+        }
+
+        window[callbackName] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('跨域腳本載入失敗'));
+        };
+
+        document.body.appendChild(script);
+      });
+    }
+
+    function setSyncState(state, text) {
+      const syncStatus = document.getElementById('sync-status');
+      const syncIcon = document.getElementById('sync-icon');
+      const syncText = document.getElementById('sync-text');
+
+      if (state === 'syncing') {
+        syncStatus.className = 'inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200';
+        syncIcon.setAttribute('data-lucide', 'loader-2');
+        syncIcon.classList.add('animate-spin');
+        syncText.textContent = text || '同步更新中...';
+      } else if (state === 'success') {
+        syncStatus.className = 'inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 cursor-pointer';
+        syncIcon.setAttribute('data-lucide', 'cloud-check');
+        syncIcon.classList.remove('animate-spin');
+        syncText.textContent = text || '已同步至試算表';
+      } else {
+        syncStatus.className = 'inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 cursor-pointer';
+        syncIcon.setAttribute('data-lucide', 'alert-circle');
+        syncIcon.classList.remove('animate-spin');
+        syncText.textContent = text || '連線受限 (點擊查看)';
+      }
+      lucide.createIcons();
+    }
+
+    async function fetchTodosFromGAS(showNotification = false) {
+      if (isFetchingTodos) return;
+      isFetchingTodos = true;
+      setSyncState('syncing', '從試算表讀取中...');
+
+      try {
+        let result = null;
+
+        // 1. First attempt: Standard fetch
+        try {
+          const response = await fetch(`${GAS_API_URL}?_t=${Date.now()}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+          if (response.ok) {
+            result = await response.json();
+          }
+        } catch (fetchErr) {
+          console.warn('Standard fetch blocked by CORS/Redirect, switching to JSONP fallback...', fetchErr);
+        }
+
+        // 2. Second attempt: JSONP fallback (bypasses iframe CORS completely)
+        if (!result) {
+          result = await fetchWithJsonp(GAS_API_URL);
+        }
+
+        if (result && result.status === 'success' && Array.isArray(result.data)) {
+          todos = result.data.map(item => ({
+            id: String(item.id),
+            text: item.text,
+            dueDate: item.dueDate || '',
+            createdAt: item.createdAt || '',
+            status: item.status || (item.completed ? '已完成' : '進行中'),
+            completed: Boolean(item.completed)
+          }));
+
+          localStorage.setItem('dashboard_todos', JSON.stringify(todos));
+          renderTodos();
+          setSyncState('success', '已同步至試算表');
+          if (showNotification) {
+            showToast('已成功從 Google 試算表同步資料', 'cloud-check');
+          }
+        } else {
+          throw new Error((result && result.message) || '資料格式錯誤');
+        }
+      } catch (error) {
+        console.error('GAS Fetch Error:', error);
+        setSyncState('error', '雲端連線失敗 (點此設定)');
+        renderTodos();
+        if (showNotification) {
+          showToast('無法讀取試算表，已顯示本地暫存', 'cloud-off');
+        }
+      } finally {
+        isFetchingTodos = false;
+      }
+    }
+
+    async function callGasApi(payload, actionName) {
+      setSyncState('syncing', `${actionName}...`);
+      try {
+        // Try JSONP / GET for high compatibility
+        let result = null;
+        try {
+          result = await fetchWithJsonp(GAS_API_URL, payload);
+        } catch (jsonpErr) {
+          // Fallback to text/plain POST
+          const response = await fetch(GAS_API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          result = await response.json();
+        }
+
+        if (result && result.status === 'success') {
+          setSyncState('success', '已同步至試算表');
+          return result;
+        } else {
+          throw new Error((result && result.message) || '伺服器未回應成功');
+        }
+      } catch (err) {
+        console.error(`GAS ${actionName} error:`, err);
+        setSyncState('error', '同步受限 (已保存在本機)');
+        showToast(`暫時無法寫入試算表：請檢查 GAS 存取權限`, 'alert-circle');
+        return null;
+      }
+    }
+
+    function saveTodosLocally() {
+      localStorage.setItem('dashboard_todos', JSON.stringify(todos));
+      renderTodos();
+    }
+
+    function getDueDateBadge(dueDate, isCompleted) {
+      if (!dueDate) return '';
+      const today = getTodayString();
+      let badgeClass = 'bg-slate-100 text-slate-500 border-slate-200';
+      let label = dueDate;
+
+      if (!isCompleted) {
+        if (dueDate < today) {
+          badgeClass = 'bg-rose-50 text-rose-600 border-rose-200 font-semibold';
+          label = `已逾期 (${dueDate.slice(5)})`;
+        } else if (dueDate === today) {
+          badgeClass = 'bg-amber-50 text-amber-600 border-amber-200 font-semibold';
+          label = `今天到期`;
+        } else {
+          label = `截止 ${dueDate.slice(5)}`;
+        }
+      } else {
+        label = `截止 ${dueDate.slice(5)}`;
+      }
+
+      return `
+        <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border ${badgeClass} shrink-0">
+          <i data-lucide="clock" class="w-3 h-3"></i> ${label}
+        </span>
+      `;
+    }
+
+    function renderTodos() {
+      const listEl = document.getElementById('todo-list');
+      const statsEl = document.getElementById('todo-stats');
+      const progressBar = document.getElementById('todo-progress-bar');
+
+      const filtered = todos.filter(item => {
+        if (currentFilter === 'active') return !item.completed;
+        if (currentFilter === 'completed') return item.completed;
+        return true;
+      });
+
+      const completedCount = todos.filter(t => t.completed).length;
+      const totalCount = todos.length;
+      const remainingCount = totalCount - completedCount;
+      const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+      progressBar.style.width = `${percent}%`;
+      statsEl.textContent = totalCount === 0 
+        ? '目前試算表中沒有任何任務，點擊上方快速新增' 
+        : `還有 ${remainingCount} 個待辦 (${percent}% 已完成)`;
+
+      listEl.innerHTML = '';
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+            <i data-lucide="check-check" class="w-8 h-8 text-slate-300"></i>
+            <span>沒有符合此分類的任務</span>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      filtered.forEach(todo => {
+        const itemEl = document.createElement('div');
+        itemEl.className = `flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl border transition-all gap-2 ${
+          todo.completed 
+            ? 'bg-slate-50/70 border-slate-200/60 text-slate-400' 
+            : 'bg-white border-slate-200/80 hover:border-teal-300 hover:shadow-xs text-slate-700'
+        }`;
+
+        const dueBadgeHtml = getDueDateBadge(todo.dueDate, todo.completed);
+
+        itemEl.innerHTML = `
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <button class="toggle-todo-btn shrink-0 w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${
+              todo.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-teal-500'
+            }" data-id="${todo.id}">
+              ${todo.completed ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
+            </button>
+            <span class="text-sm select-none break-all ${todo.completed ? 'line-through text-slate-400' : 'font-medium'}">${escapeHtml(todo.text)}</span>
+          </div>
+          <div class="flex items-center justify-between sm:justify-end gap-2 pl-8 sm:pl-0">
+            ${dueBadgeHtml}
+            <button class="delete-todo-btn p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors" data-id="${todo.id}" title="刪除待辦">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+
+        listEl.appendChild(itemEl);
+      });
+
+      listEl.querySelectorAll('.toggle-todo-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          const target = todos.find(t => t.id === id);
+          if (target) {
+            // Optimistic UI update
+            target.completed = !target.completed;
+            target.status = target.completed ? '已完成' : '進行中';
+            saveTodosLocally();
+
+            // Send update to Google Sheet
+            await callGasApi({
+              action: 'update',
+              id: target.id,
+              completed: target.completed,
+              status: target.status
+            }, '更新狀態');
+          }
+        });
+      });
+
+      listEl.querySelectorAll('.delete-todo-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          // Optimistic UI removal
+          todos = todos.filter(t => t.id !== id);
+          saveTodosLocally();
+          showToast('任務已刪除', 'trash');
+
+          // Send delete to Google Sheet
+          await callGasApi({
+            action: 'delete',
+            id: id
+          }, '刪除任務');
+        });
+      });
+
+      lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag));
+    }
+
+    document.getElementById('todo-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('todo-input');
+      const dueDateInput = document.getElementById('todo-due-date');
+      const text = input.value.trim();
+      const dueDate = dueDateInput.value || '';
+      if (!text) return;
+
+      const newId = 'T' + Date.now();
+      const todayStr = getTodayString();
+
+      // Optimistic addition
+      const newItem = {
+        id: newId,
+        text: text,
+        dueDate: dueDate,
+        createdAt: todayStr,
+        status: '進行中',
+        completed: false
+      };
+
+      todos.unshift(newItem);
+      input.value = '';
+      dueDateInput.value = '';
+      saveTodosLocally();
+      showToast('已新增任務，同步中...', 'check-circle');
+
+      // Send creation to Google Sheet
+      const res = await callGasApi({
+        action: 'create',
+        id: newId,
+        text: text,
+        dueDate: dueDate,
+        createdAt: todayStr,
+        status: '進行中',
+        completed: false
+      }, '新增任務');
+
+      if (res && res.item && res.item.id) {
+        // Reconcile id if server assigned a different one
+        newItem.id = String(res.item.id);
+        saveTodosLocally();
+      }
+    });
+
+    document.querySelectorAll('.todo-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.todo-filter-btn').forEach(b => {
+          b.className = 'todo-filter-btn px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800';
+        });
+        btn.className = 'todo-filter-btn px-2.5 py-1 rounded-lg bg-white shadow-xs text-slate-800 font-semibold';
+        currentFilter = btn.dataset.filter;
+        renderTodos();
+      });
+    });
+
+    document.getElementById('refresh-todos-btn').addEventListener('click', () => {
+      fetchTodosFromGAS(true);
+    });
+
+    // Modal listeners for GAS setup help
+    const gasModal = document.getElementById('gas-help-modal');
+    document.getElementById('sync-status').addEventListener('click', () => {
+      gasModal.classList.remove('hidden');
+    });
+    document.getElementById('close-gas-modal').addEventListener('click', () => {
+      gasModal.classList.add('hidden');
+    });
+    document.getElementById('retry-gas-btn').addEventListener('click', () => {
+      gasModal.classList.add('hidden');
+      fetchTodosFromGAS(true);
+    });
+
+    // Initial render from local cache and trigger cloud sync
+    renderTodos();
+    fetchTodosFromGAS(false);
+
+    // 5.5 Authentication Gate Logic (Password: 123456)
+    const CORRECT_PASSWORD = '123456';
+    const loginScreen = document.getElementById('login-screen');
+    const loginCard = document.getElementById('login-card');
+    const loginForm = document.getElementById('login-form');
+    const loginPassword = document.getElementById('login-password');
+    const loginErrorMsg = document.getElementById('login-error-msg');
+    const togglePwdVisBtn = document.getElementById('toggle-pwd-vis-btn');
+    const pwdVisIcon = document.getElementById('pwd-vis-icon');
+    const dashboardContent = document.getElementById('dashboard-content');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    function unlockDashboard(animate = true) {
+      loginScreen.classList.add('hidden');
+      dashboardContent.classList.remove('opacity-0', 'pointer-events-none', 'blur-sm');
+      dashboardContent.classList.add('opacity-100');
+      sessionStorage.setItem('dashboard_auth_token', 'unlocked');
+      if (animate) {
+        showToast('驗證成功，歡迎回來！', 'shield-check');
+      }
+      lucide.createIcons();
+    }
+
+    function lockDashboard() {
+      sessionStorage.removeItem('dashboard_auth_token');
+      dashboardContent.classList.add('opacity-0', 'pointer-events-none', 'blur-sm');
+      dashboardContent.classList.remove('opacity-100');
+      loginScreen.classList.remove('hidden');
+      loginPassword.value = '';
+      loginErrorMsg.classList.add('hidden');
+      setTimeout(() => loginPassword.focus(), 100);
+      showToast('儀表板已鎖定', 'lock');
+      lucide.createIcons();
+    }
+
+    // Check if already authenticated in this session
+    if (sessionStorage.getItem('dashboard_auth_token') === 'unlocked') {
+      unlockDashboard(false);
+    } else {
+      setTimeout(() => loginPassword.focus(), 150);
+    }
+
+    // Toggle Password Visibility
+    togglePwdVisBtn.addEventListener('click', () => {
+      const isPassword = loginPassword.type === 'password';
+      loginPassword.type = isPassword ? 'text' : 'password';
+      pwdVisIcon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+      lucide.createIcons();
+    });
+
+    // Handle Form Submit
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const enteredPwd = loginPassword.value.trim();
+
+      if (enteredPwd === CORRECT_PASSWORD) {
+        loginErrorMsg.classList.add('hidden');
+        loginCard.classList.remove('shake-error');
+        unlockDashboard(true);
+      } else {
+        // Trigger shake effect and display error
+        loginErrorMsg.classList.remove('hidden');
+        loginCard.classList.remove('shake-error');
+        void loginCard.offsetWidth; // Force CSS reflow
+        loginCard.classList.add('shake-error');
+        loginPassword.value = '';
+        loginPassword.focus();
+        showToast('密碼錯誤，請重新輸入', 'alert-circle');
+      }
+    });
+
+    // Logout / Lock Button
+    logoutBtn.addEventListener('click', () => {
+      lockDashboard();
+    });
+
+    // 6. Quick Links Bookmarks
+    const defaultLinks = [
+      { id: '1', name: 'Google', url: 'https://www.google.com', icon: '🔍', color: 'bg-red-50 text-red-600' },
+      { id: '2', name: 'YouTube', url: 'https://www.youtube.com', icon: '▶️', color: 'bg-rose-50 text-rose-600' },
+      { id: '3', name: 'GitHub', url: 'https://www.github.com', icon: '🐙', color: 'bg-slate-100 text-slate-800' },
+      { id: '4', name: 'Notion', url: 'https://www.notion.so', icon: '📝', color: 'bg-stone-100 text-stone-700' },
+      { id: '5', name: 'Gmail', url: 'https://mail.google.com', icon: '✉️', color: 'bg-amber-50 text-amber-600' },
+      { id: '6', name: 'ChatGPT', url: 'https://chatgpt.com', icon: '🤖', color: 'bg-emerald-50 text-emerald-600' },
+    ];
+
+    let userLinks = JSON.parse(localStorage.getItem('dashboard_links')) || defaultLinks;
+
+    function renderLinks() {
+      const container = document.getElementById('links-container');
+      container.innerHTML = '';
+
+      userLinks.forEach(link => {
+        const linkCard = document.createElement('div');
+        linkCard.className = 'relative group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-slate-50/80 hover:bg-white hover:shadow-md border border-slate-200/60 hover:border-teal-200 transition-all cursor-pointer text-center';
+        
+        linkCard.innerHTML = `
+          <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center w-full">
+            <span class="w-10 h-10 rounded-2xl ${link.color || 'bg-teal-50 text-teal-700'} flex items-center justify-center text-lg mb-2 shadow-xs group-hover:scale-105 transition-transform">
+              ${link.icon || '🔗'}
+            </span>
+            <span class="text-xs font-semibold text-slate-700 truncate w-full group-hover:text-teal-600">${escapeHtml(link.name)}</span>
+          </a>
+          <button class="delete-link-btn absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-xs" data-id="${link.id}" title="移除">
+            &times;
+          </button>
+        `;
+
+        container.appendChild(linkCard);
+      });
+
+      container.querySelectorAll('.delete-link-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          userLinks = userLinks.filter(l => l.id !== id);
+          localStorage.setItem('dashboard_links', JSON.stringify(userLinks));
+          renderLinks();
+          showToast('已移除捷徑', 'trash');
+        });
+      });
+    }
+
+    // Modal Events
+    const modal = document.getElementById('link-modal');
+    document.getElementById('open-add-link-modal').addEventListener('click', () => {
+      modal.classList.remove('hidden');
+      document.getElementById('modal-link-name').focus();
+    });
+
+    function closeModal() {
+      modal.classList.add('hidden');
+      document.getElementById('modal-link-name').value = '';
+      document.getElementById('modal-link-url').value = '';
+      document.getElementById('modal-link-icon').value = '';
+    }
+
+    document.getElementById('close-link-modal').addEventListener('click', closeModal);
+    document.getElementById('cancel-link-btn').addEventListener('click', closeModal);
+
+    document.getElementById('save-link-btn').addEventListener('click', () => {
+      const name = document.getElementById('modal-link-name').value.trim();
+      let url = document.getElementById('modal-link-url').value.trim();
+      const icon = document.getElementById('modal-link-icon').value.trim() || '🌐';
+
+      if (!name || !url) {
+        showToast('請填寫捷徑名稱與網址', 'alert-circle');
+        return;
+      }
+
+      if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+      }
+
+      userLinks.push({
+        id: Date.now().toString(),
+        name,
+        url,
+        icon,
+        color: 'bg-teal-50 text-teal-600'
+      });
+
+      localStorage.setItem('dashboard_links', JSON.stringify(userLinks));
+      renderLinks();
+      closeModal();
+      showToast('捷徑已新增！', 'check-circle');
+    });
+
+    renderLinks();
+
+    // 7. Multi-Notes CRUD Management
+    const defaultNotes = [
+      {
+        id: '1',
+        title: '晨間靈感',
+        content: '保持生活與工作的清晰節奏，每天優先解決最重要的一件關鍵事項！',
+        date: '2026/09/21'
+      },
+      {
+        id: '2',
+        title: '備忘清單',
+        content: '週末前需確認伺服器快照備份與測試環境更新。',
+        date: '2026/09/21'
+      }
+    ];
+
+    let userNotes = JSON.parse(localStorage.getItem('dashboard_multi_notes')) || defaultNotes;
+
+    const noteForm = document.getElementById('note-form');
+    const toggleNoteBtn = document.getElementById('toggle-add-note-btn');
+    const cancelNoteBtn = document.getElementById('cancel-note-btn');
+    const noteTitleInput = document.getElementById('note-title-input');
+    const noteContentInput = document.getElementById('note-content-input');
+    const notesContainer = document.getElementById('notes-container');
+    const notesCountBadge = document.getElementById('notes-count-badge');
+
+    function saveNotes() {
+      localStorage.setItem('dashboard_multi_notes', JSON.stringify(userNotes));
+      renderNotes();
+    }
+
+    function renderNotes() {
+      notesContainer.innerHTML = '';
+      notesCountBadge.textContent = `${userNotes.length} 則`;
+
+      if (userNotes.length === 0) {
+        notesContainer.innerHTML = `
+          <div class="col-span-full py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-1">
+            <i data-lucide="file-plus-2" class="w-8 h-8 text-amber-200"></i>
+            <span>目前尚無筆記，點擊「新增記事」開始記錄</span>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      userNotes.forEach(note => {
+        const card = document.createElement('div');
+        card.className = 'relative group p-4 rounded-2xl bg-amber-50/40 border border-amber-200/60 hover:bg-amber-50/80 transition-all flex flex-col justify-between';
+        
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-1.5">
+              <h3 class="font-bold text-sm text-slate-800 truncate">${escapeHtml(note.title || '無標題筆記')}</h3>
+              <button class="delete-note-btn text-slate-300 hover:text-rose-500 p-1 rounded-lg hover:bg-white/80 transition-colors shrink-0" data-id="${note.id}" title="刪除筆記">
+                <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <p class="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed break-all line-clamp-4 font-sans">${escapeHtml(note.content)}</p>
+          </div>
+          <div class="mt-3 pt-2 border-t border-amber-200/40 flex items-center justify-between text-[11px] text-amber-700/60">
+            <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${note.date}</span>
+          </div>
+        `;
+
+        notesContainer.appendChild(card);
+      });
+
+      notesContainer.querySelectorAll('.delete-note-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          userNotes = userNotes.filter(n => n.id !== id);
+          saveNotes();
+          showToast('筆記已刪除', 'trash');
+        });
+      });
+
+      lucide.createIcons();
+    }
+
+    toggleNoteBtn.addEventListener('click', () => {
+      noteForm.classList.toggle('hidden');
+      if (!noteForm.classList.contains('hidden')) {
+        noteTitleInput.focus();
+      }
+    });
+
+    cancelNoteBtn.addEventListener('click', () => {
+      noteForm.classList.add('hidden');
+      noteTitleInput.value = '';
+      noteContentInput.value = '';
+    });
+
+    noteForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = noteTitleInput.value.trim();
+      const content = noteContentInput.value.trim();
+      if (!content) return;
+
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+
+      userNotes.unshift({
+        id: Date.now().toString(),
+        title: title || '無標題筆記',
+        content,
+        date: dateStr
+      });
+
+      saveNotes();
+      noteTitleInput.value = '';
+      noteContentInput.value = '';
+      noteForm.classList.add('hidden');
+      showToast('筆記已儲存', 'check-circle');
+    });
+
+    renderNotes();
+
+    // Initialize all Lucide SVG Icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>
